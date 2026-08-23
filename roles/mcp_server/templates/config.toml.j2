@@ -16,8 +16,7 @@ token = "{{ mcp_auth_token }}"
 confirm_destructive_actions = true
 # "/" allows full machine control (REMOVE FOR XTRA SECURITY), "/123abc" specifies actual path
 allowed_roots = [
-    "/",
-    "/var/log"
+    "{{ mcp_workspace }}"
 ]
 
 [tools.commands]

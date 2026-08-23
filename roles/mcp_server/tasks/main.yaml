@@ -19,6 +19,41 @@
     home: "/home/{{ mcp_service_user }}"
     shell: /usr/sbin/nologin # denies external SSH access
 
+- name: Create filesystem on the data volume (i.e. EBS)
+  community.general.filesystem:
+    fstype: ext4
+    dev: "{{ mcp_data_device }}"
+  when: mcp_data_device | length > 0 # default is "" so 0
+
+- name: Get volume UUID
+  ansible.builtin.command: blkid -s UUID -o value {{ mcp_data_device }}
+  register: mcp_vol_uuid
+  changed_when: false
+  when: mcp_data_device | length > 0 # default is "" so 0
+
+- name: Mount the workspace volume
+  ansible.posix.mount:
+    path: "{{ mcp_workspace }}"
+    src: "UUID={{ mcp_vol_uuid.stdout }}"
+    fstype: ext4
+    opts: "defaults,nofail"
+    state: mounted
+  when: mcp_data_device | length > 0 # default is "" so 0
+
+- name: Own the workspace volume
+  ansible.builtin.file:
+    path: "{{ mcp_workspace }}"
+    state: directory
+    owner: "{{ mcp_service_user }}"
+    group: "{{ mcp_service_user }}"
+    mode: "2770"
+
+- name: Let the admin user into the workspace
+  ansible.builtin.user:
+    name: "{{ mcp_admin_user }}"
+    groups: "{{ mcp_service_user }}"
+    append: true
+
 - name: Install MCP server package via pipx
   ansible.builtin.command: pipx install mcp-server-remote
   environment:

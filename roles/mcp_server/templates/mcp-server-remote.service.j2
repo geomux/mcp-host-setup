@@ -7,8 +7,15 @@ After=network.target
 
 [Service]
 User={{ mcp_service_user }}
+WorkingDirectory={{ mcp_workspace }}
 ExecStart={{ pipx_bin_dir }}/mcp-server-remote
 Restart=on-failure
+
+ProtectSystem=strict
+ReadWritePaths={{ mcp_workspace }}
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
 
 [Install]
 WantedBy=multi-user.target

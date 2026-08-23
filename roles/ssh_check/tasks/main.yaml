@@ -1,20 +1,46 @@
 # /roles/ssh_check/tasks/main.yaml
-# Tasks to perform SSH checks prior to confuring box with Ansible
+# Tasks to perform SSH checks prior to configuring box with Ansible
 
 ---
 
-- name: Check if Ansible has SSH credentials to configure the target node
+- name: Check that the inventory points at a node this playbook is meant to configure
   ansible.builtin.assert:
     that:
-      - ansible_connection | default('ssh') != 'local'
-      - ansible_host is defined
-      - ansible_host not in ['127.0.0.1', 'localhost', '::1']
+      - (mcp_allow_local | default(false) | bool) or not (target_is_local | bool)
     fail_msg: >-
       Inventory does not point to a remote host.
       This playbook runs from a control node and configures a target node over SSH.
       It will NOT configure your active machine you are on now.
-      Set ansible_host in /inventory/hosts.yaml to target node IP or domain address.
+      Set ansible_host in inventory/hosts.yaml to target node IP or domain address.
+      (If you meant to configure THIS machine - e.g. the cloud host self-provisioning
+      from its own user_data script - set mcp_allow_local: true in group_vars/all.yaml.)
     success_msg: >-
-      Target correctly registered as a remote host.
+      {{ 'Local execution explicitly allowed (mcp_allow_local) - configuring this machine.'
+         if (mcp_allow_local | default(false) | bool)
+         else 'Target correctly registered as a remote host.' }}
+  vars:
+    target_is_local: >-
+      {{ (ansible_connection | default('ssh')) == 'local'
+         or (ansible_host | default(inventory_hostname)) in ['127.0.0.1', 'localhost', '::1'] }}
   tags: always
 
+- name: Verify Ansible can actually open a connection to the target node
+  block:
+
+    - name: Wait for a usable connection to the target node
+      ansible.builtin.wait_for_connection:
+        timeout: 15
+
+  rescue:
+
+    - name: Report why the connection could not be opened
+      ansible.builtin.fail:
+        msg: >-
+          Could not open a connection to
+          {{ ansible_host | default(inventory_hostname) }}
+          as user '{{ ansible_user | default('(none set)') }}'.
+          Check ansible_host, ansible_user and ansible_ssh_private_key_file in
+          inventory/hosts.yaml, that the private key file exists and is chmod 600,
+          and that the target node's firewall/security group allows SSH from here.
+
+  tags: always

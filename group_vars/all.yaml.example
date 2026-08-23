@@ -22,3 +22,10 @@ mcp_server_domain: "box1.example.com"   # url to the MCP server (what clients us
 mcp_tls_dir: "/etc/nginx/tls"   # where the self-signed TLS cert keypair (cert & key) is located
 mcp_tls_san: "DNS:{{ mcp_server_domain }}"
 mcp_tls_email: ""   # completely optional. When this playbook switches to Let's Encrypt (instead of selfsigned) it will send expiration warnings to assigned email.
+
+
+# --- EXECUTION TARGET ---
+# Guard against accidentally configuring the control node you are sitting on.
+# Set to true ONLY when the target node is deliberately this same machine
+# (e.g. a cloud host self-provisioning from its own user_data script).
+mcp_allow_local: false

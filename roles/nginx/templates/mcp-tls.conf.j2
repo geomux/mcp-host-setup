@@ -10,8 +10,7 @@ server {
 }
 {% endif %}
 server {
-    listen 443 ssl;
-    http2 on;
+    listen 443 ssl http2;
     server_name {{ mcp_server_domain }};
 
 {% if mcp_tls_mode == "letsencrypt" %}
